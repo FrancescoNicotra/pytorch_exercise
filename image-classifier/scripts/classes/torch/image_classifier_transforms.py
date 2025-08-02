@@ -3,7 +3,7 @@ from torchvision.transforms import v2
 from typing import Tuple, Sequence, Optional, Dict
 import torch.nn as nn
 from torchvision import models
-from torchvision.datasets import CIFAR10
+from torchvision.datasets import CIFAR10, Places365 as P
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import os
@@ -18,7 +18,7 @@ class ImageClassifierTransforms:
         normalize: bool = True,
         normalizeObj: Optional[Dict[str, Sequence[float]]] = None,
         toImage: bool = True,
-        log_dir: Optional[str] = None
+        log_dir: Optional[str] = None,
     ) -> None:
         transforms = [
             v2.RandomResizedCrop(size=size, antialias=antialias, scale=scale),
@@ -56,9 +56,15 @@ class ImageClassifierTransforms:
         optimizer = torch.optim.Adam(model.fc.parameters(), lr=learning_rate)
         return optimizer
 
-    def get_dataloaders(self, batch_size: int = 32, root: str = "models/cifar10") -> Tuple[DataLoader, DataLoader]:
-        train_dataset = CIFAR10(root=root, train=True, download=True, transform=self.transform)
-        test_dataset = CIFAR10(root=root, train=False, download=True, transform=self.transform)
+    def get_dataloaders(self, batch_size: int = 32, root: str = "models/cifar10", dataSet: str = "CIFAR10") -> Tuple[DataLoader, DataLoader]:
+        if dataSet == "CIFAR10":
+            train_dataset = CIFAR10(root=root, train=True, download=True, transform=self.transform)
+            test_dataset = CIFAR10(root=root, train=False, download=True, transform=self.transform)
+        elif dataSet == "Places365":
+            train_dataset = P(root=root, split="train-standard", download=True, transform=self.transform)
+            test_dataset = P(root=root, split="val", download=True, transform=self.transform)
+        else:
+            raise ValueError(f"Unknown dataset: {dataSet}")
 
         train_loader: DataLoader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_loader: DataLoader = DataLoader(test_dataset, batch_size=batch_size)

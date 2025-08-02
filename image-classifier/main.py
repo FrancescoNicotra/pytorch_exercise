@@ -1,23 +1,19 @@
+import argparse
 import torch
 from scripts.classes.torch.image_classifier_transforms import ImageClassifierTransforms
 import matplotlib.pyplot as plt
 from PIL import Image
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train or load an image classifier.")
+    parser.add_argument('--newModel', action='store_true', default=False, help='Imposta a True per allenare un nuovo modello da zero')
+    parser.add_argument('--numEpochs', type=int, default=10, help='Numero di epoche per l\'allenamento del modello')
+    parser.add_argument('--numClass', type=int, default=10, help='Numero di classi per il classificatore')
+    args = parser.parse_args()
+
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    num_epochs: int = 10
-    classes = [
-        "airplane",  # 0
-        "automobile",  # 1
-        "bird",  # 2
-        "cat",  # 3
-        "deer",  # 4
-        "dog",  # 5
-        "frog",  # 6
-        "horse",  # 7
-        "ship",  # 8
-        "truck"  # 9
-    ]
+    num_epochs: int = args.numEpochs
+    num_class: int = args.numClass
 
 
     transforms = ImageClassifierTransforms(
@@ -33,7 +29,7 @@ if __name__ == "__main__":
 
     model_path = "models/trained/model.pth"
 
-    if transforms.load_model(model_path):
+    if transforms.load_model(model_path) and not args.newModel:
         print("Loaded pre-trained model.")
         image_path: str = "image-classifier/images/what-do-you-know-about-cats-1781120238.jpg"
         image = Image.open(image_path)
@@ -43,11 +39,11 @@ if __name__ == "__main__":
         with torch.no_grad():
             output = model(tensor_img)
             _, predicted = torch.max(output, 1)
-            print(f"Predicted class: {predicted.item()} - {classes[int(predicted.item())]}")
+            print(f"Predicted class: {predicted.item()}")
     else:
         print("No pre-trained model found, starting training from scratch.")
-        train_loader, test_loader = transforms.get_dataloaders(32, root="./models/cifar10")
-        model = transforms.create_model(num_class=10).to(device)
+        train_loader, test_loader = transforms.get_dataloaders(32, root="./models/Places365", dataSet="Places365")
+        model = transforms.create_model(num_class).to(device)
         optimizer = transforms.optimize_model(model, learning_rate=1e-3)
 
         for epoch in range(num_epochs):
